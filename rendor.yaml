@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: flask-csv-api
+    name: DHP-Backend
     runtime: python
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn app:app
