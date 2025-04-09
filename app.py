@@ -8,10 +8,10 @@ CORS(app)
 
 def read_and_process_csv():
     data = []
-    with open('stackoverflow_data.csv', newline='', encoding='utf-8') as csvfile:
+    with open('Datafrom_stack.csv', newline='', encoding='utf-8') as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
-            # Convert datetime to only date part (yyyy-mm-dd)
+           
             date_only = row['date'].split("T")[0] if "T" in row['date'] else row['date']
             data.append({
                 "level": int(row['level']),
