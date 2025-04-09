@@ -1,56 +1,55 @@
 from flask import Flask, jsonify
 from flask_cors import CORS
 import csv
+from collections import defaultdict
+import os
 
 app = Flask(__name__)
 CORS(app)
 
-def read_and_process_csv():
-    data = []
+def read_and_group_csv():
+    grouped_data = defaultdict(lambda: {"tags": [], "date": ""})
+    csv_path = 'Datafrom_stack.csv'
 
-    try:
-        with open('Datafrom_stack.csv', newline='', encoding='utf-8') as csvfile:
-            reader = csv.DictReader(csvfile)
+    if not os.path.exists(csv_path):
+        print(f"❌ CSV file not found at {csv_path}")
+        return []
 
-            # Check for expected headers
-            expected_fields = {'date', 'level', 'technology'}
-            if not expected_fields.issubset(set(reader.fieldnames)):
-                print("CSV headers found:", reader.fieldnames)
-                raise KeyError("CSV is missing one of the required fields: date, level, technology")
+    with open(csv_path, newline='', encoding='utf-8') as csvfile:
+        reader = csv.DictReader(csvfile)
 
-            for row in reader:
-                try:
-                    # Ensure the required fields are present in the row
-                    if 'date' not in row or 'level' not in row or 'technology' not in row:
-                        continue
+        print("📌 CSV Headers:", reader.fieldnames)
 
-                    # Extract and clean date
-                    date_raw = row['date']
-                    date_only = date_raw.split("T")[0] if "T" in date_raw else date_raw
+        for i, row in enumerate(reader):
+            try:
+                question_id = row['Question']
+                tag = row['Tag']
+                published_date = row['Published Date'].split(" ")[0]  # Keep only date part
 
-                    # Append processed row
-                    data.append({
-                        "level": int(row['level']),
-                        "technology": row['technology'],
-                        "date": date_only
-                    })
-                except (ValueError, KeyError):
-                    # Skip malformed rows
-                    continue
-    except FileNotFoundError:
-        print("CSV file not found. Make sure 'Datafrom_stack.csv' is in the correct path.")
-    except Exception as e:
-        print(f"Error reading CSV: {e}")
+                grouped_data[question_id]["tags"].append(tag)
+                grouped_data[question_id]["date"] = published_date
+            except Exception as e:
+                print(f"❌ Error on row {i}: {e}")
+                continue
 
-    return data
+    # Convert to list format for JSON
+    final_data = []
+    for q_id, info in grouped_data.items():
+        final_data.append({
+            "question": q_id,
+            "tags": info["tags"],
+            "date": info["date"]
+        })
+
+    return final_data
 
 @app.route('/data', methods=['GET'])
 def get_data():
     try:
-        data = read_and_process_csv()
+        data = read_and_group_csv()
         return jsonify(data)
     except Exception as e:
-        print(f"Exception in /data: {e}")
+        print(f"❌ Exception in /data: {e}")
         return jsonify({"error": "Failed to read data"}), 500
 
 if __name__ == '__main__':
